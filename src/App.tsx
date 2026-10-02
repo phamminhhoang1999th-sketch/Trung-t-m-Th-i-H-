@@ -11,6 +11,18 @@ import {
 } from './types';
 import { Storage } from './utils/storage';
 import { generateMonthlyInvoices } from './utils/billing';
+import {
+  fetchAllDataFromAPI,
+  syncSaveClass,
+  syncDeleteClass,
+  syncSaveStudent,
+  syncDeleteStudent,
+  syncSaveAttendance,
+  syncSaveMakeup,
+  syncSaveInvoice,
+  syncDeleteInvoice,
+  syncSaveSettings,
+} from './utils/tursoSync';
 import { Navbar, NavTab } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { AttendanceView } from './components/AttendanceView';
@@ -29,6 +41,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [currentMonth, setCurrentMonth] = useState<string>('2026-10');
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isTursoConnected, setIsTursoConnected] = useState<boolean | null>(null);
 
   // Core Data States
   const [classes, setClasses] = useState<Classroom[]>([]);
@@ -54,12 +67,13 @@ export default function App() {
     missedDate?: string;
   } | null>(null);
 
-  // Load from Storage on mount
+  // Load from Storage & Turso API on mount
   useEffect(() => {
     loadAllData();
   }, []);
 
-  const loadAllData = () => {
+  const loadAllData = async () => {
+    // 1. Tải tức thì từ LocalStorage
     setClasses(Storage.getClasses());
     setStudents(Storage.getStudents());
     setAttendance(Storage.getAttendance());
@@ -71,6 +85,62 @@ export default function App() {
     const activeCurrent = Storage.getCurrentUser();
     if (activeCurrent) {
       setCurrentUser(activeCurrent);
+    }
+
+    // 2. Đồng thời tải từ Turso Database
+    try {
+      const remote = await fetchAllDataFromAPI();
+      setIsTursoConnected(remote.isTursoConnected);
+
+      if (remote.isTursoConnected) {
+        if (remote.classes) {
+          if (remote.classes.length > 0) {
+            setClasses(remote.classes);
+            Storage.saveClasses(remote.classes);
+          } else {
+            const local = Storage.getClasses();
+            if (local.length > 0) local.forEach((c) => syncSaveClass(c));
+          }
+        }
+
+        if (remote.students) {
+          if (remote.students.length > 0) {
+            setStudents(remote.students);
+            Storage.saveStudents(remote.students);
+          } else {
+            const local = Storage.getStudents();
+            if (local.length > 0) local.forEach((s) => syncSaveStudent(s));
+          }
+        }
+
+        if (remote.attendance && remote.attendance.length > 0) {
+          setAttendance(remote.attendance);
+          Storage.saveAttendance(remote.attendance);
+        }
+
+        if (remote.makeupRequests && remote.makeupRequests.length > 0) {
+          setMakeupRequests(remote.makeupRequests);
+          Storage.saveMakeupRequests(remote.makeupRequests);
+        }
+
+        if (remote.invoices && remote.invoices.length > 0) {
+          setInvoices(remote.invoices);
+          Storage.saveInvoices(remote.invoices);
+        }
+
+        if (remote.settings) {
+          setSettings(remote.settings);
+          Storage.saveSettings(remote.settings);
+        }
+
+        if (remote.users && remote.users.length > 0) {
+          setUsers(remote.users);
+          Storage.saveUsers(remote.users);
+        }
+      }
+    } catch (e) {
+      console.warn('Không thể đồng bộ với Turso:', e);
+      setIsTursoConnected(false);
     }
   };
 
@@ -136,6 +206,7 @@ export default function App() {
     }
     setAttendance(updatedSessions);
     Storage.saveAttendance(updatedSessions);
+    syncSaveAttendance(session);
 
     // 2. Automatically complete any makeup requests fulfilled by this attendance session
     if (completedMakeupIds.length > 0) {
@@ -169,6 +240,7 @@ export default function App() {
     const updated = [request, ...makeupRequests.filter((r) => r.id !== request.id)];
     setMakeupRequests(updated);
     Storage.saveMakeupRequests(updated);
+    syncSaveMakeup(request);
   };
 
   const handleUpdateMakeupStatus = (requestId: string, status: MakeupStatus) => {
@@ -183,6 +255,8 @@ export default function App() {
     );
     setMakeupRequests(updated);
     Storage.saveMakeupRequests(updated);
+    const target = updated.find((r) => r.id === requestId);
+    if (target) syncSaveMakeup(target);
   };
 
   // Học phí & Hoá đơn
@@ -197,6 +271,7 @@ export default function App() {
     });
     setInvoices(newInvoices);
     Storage.saveInvoices(newInvoices);
+    newInvoices.forEach((inv) => syncSaveInvoice(inv));
   };
 
   const handleMarkAsPaid = (
@@ -217,6 +292,8 @@ export default function App() {
     );
     setInvoices(updated);
     Storage.saveInvoices(updated);
+    const paidInv = updated.find((i) => i.id === invoiceId);
+    if (paidInv) syncSaveInvoice(paidInv);
 
     if (selectedInvoiceForModal?.id === invoiceId) {
       setSelectedInvoiceForModal({
@@ -233,6 +310,7 @@ export default function App() {
     const updated = invoices.filter((i) => i.id !== invoiceId);
     setInvoices(updated);
     Storage.saveInvoices(updated);
+    syncDeleteInvoice(invoiceId);
   };
 
   // Học sinh
@@ -246,12 +324,14 @@ export default function App() {
     }
     setStudents(updated);
     Storage.saveStudents(updated);
+    syncSaveStudent(student);
   };
 
   const handleDeleteStudent = (studentId: string) => {
     const updated = students.filter((s) => s.id !== studentId);
     setStudents(updated);
     Storage.saveStudents(updated);
+    syncDeleteStudent(studentId);
   };
 
   // Lớp học
@@ -265,18 +345,21 @@ export default function App() {
     }
     setClasses(updated);
     Storage.saveClasses(updated);
+    syncSaveClass(classroom);
   };
 
   const handleDeleteClass = (classId: string) => {
     const updated = classes.filter((c) => c.id !== classId);
     setClasses(updated);
     Storage.saveClasses(updated);
+    syncDeleteClass(classId);
   };
 
   // Cấu hình
   const handleSaveSettings = (newSettings: CenterSettings) => {
     setSettings(newSettings);
     Storage.saveSettings(newSettings);
+    syncSaveSettings(newSettings);
   };
 
   // Quick navigation helpers
@@ -325,6 +408,7 @@ export default function App() {
         unpaidInvoiceCount={unpaidInvoiceCount}
         currentUser={currentUser}
         usersList={users}
+        isTursoConnected={isTursoConnected}
         onSwitchUser={handleSwitchUser}
         onLogout={handleLogout}
       />

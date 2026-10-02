@@ -35,6 +35,7 @@ interface NavbarProps {
   unpaidInvoiceCount: number;
   currentUser: UserAccount;
   usersList: UserAccount[];
+  isTursoConnected?: boolean | null;
   onSwitchUser: (user: UserAccount) => void;
   onLogout?: () => void;
 }
@@ -47,6 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   unpaidInvoiceCount,
   currentUser,
   usersList,
+  isTursoConnected,
   onSwitchUser,
   onLogout,
 }) => {
@@ -112,6 +114,39 @@ export const Navbar: React.FC<NavbarProps> = ({
             <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
             <span className="font-medium">{settings.hotline}</span>
           </a>
+          <span className="text-slate-500">·</span>
+
+          {/* Turso Database Connection Indicator */}
+          <div
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-800 border border-slate-700"
+            title={
+              isTursoConnected === true
+                ? 'Đã kết nối cơ sở dữ liệu Turso Cloud (Đồng bộ thời gian thực)'
+                : isTursoConnected === false
+                ? 'Đang lưu cục bộ LocalStorage (Chưa kết nối Turso)'
+                : 'Đang kiểm tra kết nối Turso...'
+            }
+          >
+            {isTursoConnected === true ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-300 hidden sm:inline">Turso DB Đồng bộ</span>
+                <span className="text-emerald-300 sm:hidden">Turso</span>
+              </>
+            ) : isTursoConnected === false ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="text-amber-300 hidden sm:inline">Lưu LocalStorage</span>
+                <span className="text-amber-300 sm:hidden">Local</span>
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span className="text-slate-300">Kiểm tra DB...</span>
+              </>
+            )}
+          </div>
+
           <span className="text-slate-500">·</span>
 
           {/* Quick Role Switcher */}
