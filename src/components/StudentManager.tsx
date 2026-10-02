@@ -10,6 +10,7 @@ import {
   Edit2,
   Trash2,
   Percent,
+  DollarSign,
   CheckCircle2,
   History,
   Receipt,
@@ -64,7 +65,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
   const [parentPhone, setParentPhone] = useState('');
   const [address, setAddress] = useState('');
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
-  const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [customFeePerSession, setCustomFeePerSession] = useState<string>('');
   const [note, setNote] = useState('');
 
   const openAddModal = () => {
@@ -78,7 +79,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
     setParentPhone('');
     setAddress('');
     setSelectedClassIds(classes.length > 0 ? [classes[0].id] : []);
-    setDiscountPercent(0);
+    setCustomFeePerSession('');
     setNote('');
     setIsModalOpen(true);
   };
@@ -93,7 +94,11 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
     setParentPhone(student.parentPhone);
     setAddress(student.address || '');
     setSelectedClassIds([...student.classIds]);
-    setDiscountPercent(student.discountPercent || 0);
+    setCustomFeePerSession(
+      student.customFeePerSession && student.customFeePerSession > 0
+        ? String(student.customFeePerSession)
+        : ''
+    );
     setNote(student.note || '');
     setIsModalOpen(true);
   };
@@ -113,6 +118,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
       return;
     }
 
+    const parsedFee = customFeePerSession.trim() !== '' ? Number(customFeePerSession) : undefined;
     const studentToSave: Student = {
       id: studentCode.trim().toUpperCase(),
       fullName: fullName.trim(),
@@ -122,7 +128,8 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
       parentPhone: parentPhone.trim(),
       address: address.trim(),
       classIds: selectedClassIds,
-      discountPercent: Number(discountPercent) || 0,
+      customFeePerSession: parsedFee && parsedFee > 0 ? parsedFee : undefined,
+      discountPercent: 0,
       joinDate: editingStudent ? editingStudent.joinDate : new Date().toISOString().split('T')[0],
       status: 'active',
       note: note.trim(),
@@ -197,8 +204,38 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
       </div>
 
       {/* Student List Cards / Table */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredStudents.map((student) => {
+      {filteredStudents.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center max-w-lg mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+            <Users className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Chưa có học sinh nào
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {searchTerm || classFilter !== 'all'
+                ? 'Không tìm thấy học sinh phù hợp với bộ lọc hiện tại.'
+                : 'Danh sách học sinh đang trống. Hãy thêm học sinh mới để phân vào các lớp học.'}
+            </p>
+          </div>
+          {classes.length > 0 ? (
+            <button
+              onClick={openAddModal}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-indigo-300 transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Thêm học sinh mới</span>
+            </button>
+          ) : (
+            <div className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+              Vui lòng tạo lớp học trước khi thêm học sinh.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredStudents.map((student) => {
           const studentClasses = classes.filter((c) => student.classIds.includes(c.id));
           const studentMakeups = makeupRequests.filter((m) => m.studentId === student.id);
 
@@ -278,10 +315,18 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                     </div>
                   </div>
 
-                  {currentUser.permissions.canViewTuition && student.discountPercent > 0 && (
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">
-                      <Percent className="w-3 h-3" />
-                      <span>Được miễn giảm {student.discountPercent}% học phí</span>
+                  {currentUser.permissions.canViewTuition && (
+                    <div className="flex items-center gap-1 text-[11px] font-semibold">
+                      {student.customFeePerSession && student.customFeePerSession > 0 ? (
+                        <span className="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3 text-indigo-600" />
+                          Học phí riêng: {formatVND(student.customFeePerSession)}/buổi
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
+                          Học phí: Theo lớp chung
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -314,6 +359,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
           );
         })}
       </div>
+    )}
 
       {/* Modal: Thêm / Sửa học sinh */}
       {isModalOpen && (
@@ -449,16 +495,20 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                 {currentUser.permissions.canViewTuition ? (
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">
-                      Ưu đãi học phí (%)
+                      Học phí 1 buổi của học sinh (VNĐ)
                     </label>
                     <input
                       type="number"
+                      step="5000"
                       min="0"
-                      max="100"
-                      value={discountPercent}
-                      onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Để trống nếu tính theo lớp"
+                      value={customFeePerSession}
+                      onChange={(e) => setCustomFeePerSession(e.target.value)}
+                      className="w-full text-xs font-semibold text-indigo-700 rounded-xl border border-slate-300 p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      * Để trống sẽ tự động tính theo học phí chung của lớp.
+                    </p>
                   </div>
                 ) : null}
 

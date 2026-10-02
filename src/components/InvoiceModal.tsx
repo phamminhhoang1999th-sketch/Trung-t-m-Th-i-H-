@@ -234,6 +234,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     </div>
                     <div className="text-[11px] text-slate-500">
                       Lớp {classroom.name} · GV: {classroom.teacher}
+                      {student.customFeePerSession && student.customFeePerSession > 0 ? (
+                        <span className="text-indigo-600 font-semibold ml-1.5 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          (Áp dụng đơn giá riêng của học sinh)
+                        </span>
+                      ) : null}
                     </div>
                   </td>
                   <td className="border border-slate-200 p-2.5 text-center font-medium">

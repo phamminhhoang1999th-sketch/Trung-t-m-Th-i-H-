@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Receipt,
   CalendarCheck2,
+  LogOut,
 } from 'lucide-react';
 import { NavTab } from './Navbar';
 import { CenterSettings, UserAccount } from '../types';
@@ -27,6 +28,7 @@ interface MobileDrawerProps {
   currentUser: UserAccount;
   onOpenNewMakeupModal: () => void;
   onQuickGenerateInvoices: () => void;
+  onLogout?: () => void;
 }
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
@@ -40,6 +42,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   currentUser,
   onOpenNewMakeupModal,
   onQuickGenerateInvoices,
+  onLogout,
 }) => {
   if (!isOpen) return null;
 
@@ -298,6 +301,21 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             Gọi ngay
           </a>
         </div>
+
+        {/* Logout Button */}
+        {onLogout && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onLogout();
+            }}
+            className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-2xl border border-rose-200 transition-colors flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Đăng xuất tài khoản ({currentUser.username})</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -115,10 +115,12 @@ export function generateMonthlyInvoices(options: {
         billableSessions = stats.totalAttended > 0 ? stats.totalAttended : cls.totalExpectedSessionsPerMonth;
       }
 
-      const feePerSession = cls.feePerSession;
+      // Học phí 1 buổi: nếu học sinh có học phí riêng thì tính theo số này, để trống thì tính theo học phí chung của lớp
+      const hasCustomFee = typeof student.customFeePerSession === 'number' && student.customFeePerSession > 0;
+      const feePerSession = hasCustomFee ? student.customFeePerSession! : cls.feePerSession;
       const baseAmount = billableSessions * feePerSession;
-      const discountPercent = student.discountPercent || 0;
-      const discountAmount = Math.round((baseAmount * discountPercent) / 100);
+      const discountPercent = 0;
+      const discountAmount = 0;
       const materialFee = materialFeeDefault;
       const totalAmount = Math.max(0, baseAmount - discountAmount + materialFee);
 
@@ -138,6 +140,7 @@ export function generateMonthlyInvoices(options: {
           resultInvoices[existingIndex] = {
             ...currentInv,
             totalSessions: billableSessions,
+            feePerSession,
             baseAmount,
             discountPercent,
             discountAmount,
@@ -146,6 +149,9 @@ export function generateMonthlyInvoices(options: {
             excusedAbsencesCount: stats.absentExcusedCount,
             totalAmount,
             transferSyntax,
+            note: hasCustomFee
+              ? `Áp dụng học phí riêng của học sinh: ${feePerSession.toLocaleString('vi-VN')} đ/buổi.`
+              : currentInv.note,
           };
           updatedCount++;
         }
@@ -174,7 +180,9 @@ export function generateMonthlyInvoices(options: {
           paidAmount: 0,
           status: 'pending',
           transferSyntax,
-          note: discountPercent > 0 ? `Áp dụng ưu đãi ${discountPercent}% học phí.` : undefined,
+          note: hasCustomFee
+            ? `Áp dụng học phí riêng của học sinh: ${feePerSession.toLocaleString('vi-VN')} đ/buổi.`
+            : undefined,
         };
 
         resultInvoices.unshift(newInvoice);

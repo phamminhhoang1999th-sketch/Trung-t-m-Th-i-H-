@@ -8,13 +8,11 @@ import {
   QrCode,
   Download,
   Upload,
-  RotateCcw,
-  Sparkles,
   Lock,
   ShieldCheck,
 } from 'lucide-react';
 import { CenterSettings, UserAccount } from '../types';
-import { POPULAR_BANKS, getVietQRImageUrl, formatVND } from '../utils/vietqr';
+import { POPULAR_BANKS, getVietQRImageUrl } from '../utils/vietqr';
 import { Storage } from '../utils/storage';
 
 interface SettingsViewProps {
@@ -33,8 +31,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const canManageBank = currentUser.role === 'admin' || currentUser.role === 'manager';
 
   const [formData, setFormData] = useState<CenterSettings>({ ...settings });
-  const [testAmount, setTestAmount] = useState<number>(1200000);
-  const [testSyntax, setTestSyntax] = useState<string>('THAIHA TEST 2026');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleChange = (field: keyof CenterSettings, val: string | number) => {
@@ -100,21 +96,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     reader.readAsText(file);
   };
 
-  const handleResetDefaults = () => {
-    if (confirm('Bạn có chắc chắn muốn đặt lại dữ liệu mẫu ban đầu của Trung tâm Thái Hà?')) {
-      Storage.resetToDefault();
-      onRefreshData();
-      alert('Đã khôi phục dữ liệu mẫu thành công!');
-    }
-  };
-
-  // Preview VietQR image URL
+  // Preview VietQR image URL mẫu của trung tâm
   const previewQrUrl = getVietQRImageUrl({
     bankId: formData.bankId,
     accountNo: formData.bankAccountNo,
     accountName: formData.bankAccountName,
-    amount: testAmount,
-    description: testSyntax,
+    description: `${formData.transferPrefix} HOCPHI`,
   });
 
   return (
@@ -337,56 +324,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* Right Col (1/3): Live VietQR Code Preview & Backup Controls */}
           <div className="space-y-6">
             {/* Live VietQR Preview (CHỈ HIỂN THỊ NẾU LÀ ADMIN HOẶC QUẢN LÝ) */}
+            {/* Cột phải: Xem trước QR của trung tâm & Sao lưu */}
             {canManageBank ? (
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4">
                 <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
                   <QrCode className="w-4 h-4 text-indigo-600" />
-                  <span>Mã VietQR Demo Trực Tiếp</span>
+                  <span>Mẫu mã VietQR nhận học phí</span>
                 </div>
 
                 <div className="text-xs text-slate-500">
-                  Thử quét mã QR này bằng bất kỳ app ngân hàng nào (MBBank, Vietcombank, Techcombank...) để kiểm tra độ chính xác:
+                  Mã QR chuẩn Napas247 tương thích với tất cả ứng dụng ngân hàng tại Việt Nam (MBBank, Vietcombank, Techcombank, BIDV, VPBank...):
                 </div>
 
-                <div className="p-3 bg-slate-50 rounded-xl border border-indigo-100 text-center">
+                <div className="p-4 bg-slate-50 rounded-xl border border-indigo-100 text-center space-y-2">
                   <img
                     src={previewQrUrl}
-                    alt="VietQR Test"
+                    alt="VietQR Center"
                     className="w-48 h-auto max-h-60 mx-auto rounded-lg shadow-xs"
                   />
-                  <div className="mt-2 text-[11px] font-mono font-bold text-indigo-700">
+                  <div className="text-xs font-mono font-bold text-indigo-700">
                     {formData.bankName}
                   </div>
-                  <div className="text-[10px] text-slate-500">
-                    STK: {formData.bankAccountNo} · {formData.bankAccountName}
+                  <div className="text-[11px] text-slate-600 font-medium">
+                    STK: <strong className="font-mono text-slate-900">{formData.bankAccountNo}</strong>
                   </div>
-                </div>
-
-                {/* Interactive test controls */}
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                      Số tiền test (VNĐ):
-                    </label>
-                    <input
-                      type="number"
-                      step="50000"
-                      value={testAmount}
-                      onChange={(e) => setTestAmount(Number(e.target.value))}
-                      className="w-full text-xs font-bold rounded-lg border border-slate-200 p-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
+                  <div className="text-[11px] text-slate-600">
+                    Chủ TK: <strong className="text-slate-900">{formData.bankAccountName}</strong>
                   </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                      Nội dung chuyển khoản test:
-                    </label>
-                    <input
-                      type="text"
-                      value={testSyntax}
-                      onChange={(e) => setTestSyntax(e.target.value)}
-                      className="w-full text-xs font-mono rounded-lg border border-slate-200 p-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    Tiền tố: {formData.transferPrefix}
                   </div>
                 </div>
               </div>
@@ -421,7 +387,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={handleExportBackup}
-                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Xuất file sao lưu (JSON)</span>
@@ -437,15 +403,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     className="hidden"
                   />
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleResetDefaults}
-                  className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 text-[11px]"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Đặt lại dữ liệu mẫu ban đầu</span>
-                </button>
               </div>
             </div>
           </div>

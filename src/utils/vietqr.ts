@@ -49,10 +49,10 @@ export function getVietQRImageUrl(options: {
   bankId: string;
   accountNo: string;
   accountName: string;
-  amount: number;
+  amount?: number;
   description: string;
 }): string {
-  const { bankId, accountNo, accountName, amount, description } = options;
+  const { bankId, accountNo, accountName, amount = 0, description } = options;
   const cleanBankId = bankId.trim();
   const cleanAccountNo = accountNo.trim();
   const cleanAccountName = encodeURIComponent(accountName.trim().toUpperCase());

@@ -62,7 +62,8 @@ export interface Student {
   address?: string;
   classIds: string[];
   joinDate: string;
-  discountPercent: number; // 0 - 100%
+  customFeePerSession?: number; // Học phí 1 buổi riêng của học sinh (nếu để trống sẽ tính theo học phí chung của lớp)
+  discountPercent?: number; // 0 - 100%
   status: 'active' | 'suspended';
   note?: string;
 }

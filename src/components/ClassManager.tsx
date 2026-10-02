@@ -151,119 +151,143 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
       </div>
 
       {/* Class cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {classes.map((cls) => {
-          const classStudents = students.filter(
-            (s) => s.status === 'active' && s.classIds.includes(cls.id)
-          );
-
-          return (
-            <div
-              key={cls.id}
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
+      {classes.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center max-w-lg mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Chưa có lớp học nào
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Trung tâm chưa có lớp học nào trong hệ thống. Hãy tạo lớp học đầu tiên để bắt đầu quản lý học sinh và điểm danh.
+            </p>
+          </div>
+          {canManageClasses && (
+            <button
+              onClick={openAddModal}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-indigo-300 transition-all inline-flex items-center gap-2 cursor-pointer"
             >
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-                      {cls.grade}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">
-                      {cls.subject}
-                    </span>
-                  </div>
+              <PlusCircle className="w-4 h-4" />
+              <span>Tạo lớp học đầu tiên</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {classes.map((cls) => {
+            const classStudents = students.filter(
+              (s) => s.status === 'active' && s.classIds.includes(cls.id)
+            );
 
-                  {canManageClasses && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEditModal(cls)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Sửa lớp"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Bạn có chắc chắn muốn xoá lớp ${cls.name}?`)) {
-                            onDeleteClass(cls.id);
-                          }
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Xoá lớp"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+            return (
+              <div
+                key={cls.id}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {cls.grade}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500">
+                        {cls.subject}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                <div className="mt-2 font-black text-slate-900 text-base leading-snug">
-                  {cls.name}
-                </div>
-
-                <div className="mt-3 space-y-2 text-xs text-slate-600">
-                  <div className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>
-                      Giáo viên: <strong className="text-slate-800">{cls.teacher}</strong>
-                    </span>
+                    {canManageClasses && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEditModal(cls)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Sửa lớp"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Bạn có chắc chắn muốn xoá lớp ${cls.name}?`)) {
+                              onDeleteClass(cls.id);
+                            }
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Xoá lớp"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="font-semibold text-indigo-900">{cls.schedule}</span>
+                  <div className="mt-2 font-black text-slate-900 text-base leading-snug">
+                    {cls.name}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{cls.room}</span>
-                  </div>
-
-                  {canViewTuition ? (
+                  <div className="mt-3 space-y-2 text-xs text-slate-600">
                     <div className="flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>
-                        Học phí:{' '}
-                        <strong className="text-slate-900 font-bold">
-                          {formatVND(cls.feePerSession)}/buổi
-                        </strong>{' '}
-                        (~{formatVND(cls.feePerSession * cls.totalExpectedSessionsPerMonth)}/tháng)
+                        Giáo viên: <strong className="text-slate-800">{cls.teacher}</strong>
                       </span>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>
-                        Học phí: <em className="text-slate-500 font-medium">Bảo mật (Chỉ Admin & Quản lý)</em>
-                      </span>
-                    </div>
-                  )}
 
-                  {cls.description && (
-                    <div className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg">
-                      {cls.description}
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="font-semibold text-indigo-900">{cls.schedule}</span>
                     </div>
-                  )}
+
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{cls.room}</span>
+                    </div>
+
+                    {canViewTuition ? (
+                      <div className="flex items-center gap-1.5">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>
+                          Học phí:{' '}
+                          <strong className="text-slate-900 font-bold">
+                            {formatVND(cls.feePerSession)}/buổi
+                          </strong>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>
+                          Học phí: <em className="text-slate-500 font-medium">Bảo mật (Chỉ Admin & Quản lý)</em>
+                        </span>
+                      </div>
+                    )}
+
+                    {cls.description && (
+                      <div className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg">
+                        {cls.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{classStudents.length} học sinh</span>
+                  </div>
+
+                  <button
+                    onClick={() => onSelectClassForAttendance(cls.id)}
+                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl transition-colors"
+                  >
+                    Điểm danh lớp
+                  </button>
                 </div>
               </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
-                  <Users className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{classStudents.length} học sinh</span>
-                </div>
-
-                <button
-                  onClick={() => onSelectClassForAttendance(cls.id)}
-                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl transition-colors"
-                >
-                  Điểm danh lớp
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal Add / Edit Class */}
       {isModalOpen && (
@@ -405,33 +429,18 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
               </div>
 
               {canViewTuition ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Học phí / 1 buổi (VNĐ)
-                    </label>
-                    <input
-                      type="number"
-                      step="10000"
-                      value={feePerSession}
-                      onChange={(e) => setFeePerSession(Number(e.target.value))}
-                      className="w-full text-xs font-bold text-indigo-700 rounded-xl border border-slate-300 p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Số buổi chuẩn trong tháng
-                    </label>
-                    <input
-                      type="number"
-                      value={totalExpectedSessions}
-                      onChange={(e) => setTotalExpectedSessions(Number(e.target.value))}
-                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Học phí / 1 buổi (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    step="10000"
+                    value={feePerSession}
+                    onChange={(e) => setFeePerSession(Number(e.target.value))}
+                    className="w-full text-xs font-bold text-indigo-700 rounded-xl border border-slate-300 p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
                 </div>
               ) : (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-xs text-slate-500">

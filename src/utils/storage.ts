@@ -18,14 +18,14 @@ import {
 } from '../data/mockData';
 
 const STORAGE_KEYS = {
-  CLASSES: 'thaiha_classes_v1',
-  STUDENTS: 'thaiha_students_v1',
-  ATTENDANCE: 'thaiha_attendance_v1',
-  MAKEUP: 'thaiha_makeup_v1',
-  INVOICES: 'thaiha_invoices_v1',
-  SETTINGS: 'thaiha_settings_v1',
-  USERS: 'thaiha_users_v1',
-  CURRENT_USER: 'thaiha_current_user_v1',
+  CLASSES: 'thaiha_classes_v2',
+  STUDENTS: 'thaiha_students_v2',
+  ATTENDANCE: 'thaiha_attendance_v2',
+  MAKEUP: 'thaiha_makeup_v2',
+  INVOICES: 'thaiha_invoices_v2',
+  SETTINGS: 'thaiha_settings_v2',
+  USERS: 'thaiha_users_v2',
+  CURRENT_USER: 'thaiha_current_user_v2',
 };
 
 function getItem<T>(key: string, fallback: T): T {
@@ -97,11 +97,19 @@ export const Storage = {
     setItem(STORAGE_KEYS.USERS, users);
   },
 
-  getCurrentUser(): UserAccount {
-    return getItem<UserAccount>(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
+  getCurrentUser(): UserAccount | null {
+    return getItem<UserAccount | null>(STORAGE_KEYS.CURRENT_USER, null);
   },
   setCurrentUser(user: UserAccount | null) {
-    setItem(STORAGE_KEYS.CURRENT_USER, user || INITIAL_USERS[0]);
+    if (user) {
+      setItem(STORAGE_KEYS.CURRENT_USER, user);
+    } else {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   },
 
   resetToDefault() {

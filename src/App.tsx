@@ -23,6 +23,7 @@ import { SettingsView } from './components/SettingsView';
 import { UserManager } from './components/UserManager';
 import { BottomNav } from './components/BottomNav';
 import { MobileDrawer } from './components/MobileDrawer';
+import { LoginView } from './components/LoginView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
@@ -39,7 +40,7 @@ export default function App() {
 
   // User Accounts & Authentication States (RBAC)
   const [users, setUsers] = useState<UserAccount[]>([]);
-  const [currentUser, setCurrentUser] = useState<UserAccount>(Storage.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => Storage.getCurrentUser());
 
   // Interactive selection states
   const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<string>('');
@@ -68,10 +69,18 @@ export default function App() {
     const loadedUsers = Storage.getUsers();
     setUsers(loadedUsers);
     const activeCurrent = Storage.getCurrentUser();
-    setCurrentUser(activeCurrent || loadedUsers[0]);
+    if (activeCurrent) {
+      setCurrentUser(activeCurrent);
+    }
   };
 
   // --- Handlers ---
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    Storage.setCurrentUser(null);
+    setIsMoreMenuOpen(false);
+  };
 
   // Quản lý tài khoản & Phân quyền (RBAC)
   const handleSaveUser = (user: UserAccount) => {
@@ -86,13 +95,17 @@ export default function App() {
     Storage.saveUsers(updated);
 
     // If updated user is current user, update current user state
-    if (currentUser.id === user.id) {
+    if (currentUser?.id === user.id) {
       setCurrentUser(user);
       Storage.setCurrentUser(user);
     }
   };
 
   const handleDeleteUser = (userId: string) => {
+    if (userId === 'USR-ADMIN' || userId === currentUser?.id) {
+      alert('Không thể xoá tài khoản Admin đang quản trị hệ thống!');
+      return;
+    }
     const updated = users.filter((u) => u.id !== userId);
     setUsers(updated);
     Storage.saveUsers(updated);
@@ -286,6 +299,21 @@ export default function App() {
     ? classes.find((c) => c.id === selectedInvoiceForModal.classId)
     : undefined;
 
+  // Nếu chưa đăng nhập: Hiển thị màn hình Đăng nhập riêng biệt cho Admin & Giáo viên
+  if (!currentUser) {
+    return (
+      <LoginView
+        users={users.length > 0 ? users : Storage.getUsers()}
+        settings={settings}
+        onLogin={(user) => {
+          setCurrentUser(user);
+          Storage.setCurrentUser(user);
+          setActiveTab('dashboard');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900">
       {/* Top Navbar */}
@@ -298,6 +326,7 @@ export default function App() {
         currentUser={currentUser}
         usersList={users}
         onSwitchUser={handleSwitchUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Body */}
@@ -459,6 +488,7 @@ export default function App() {
           handleGenerateMonthlyInvoices(currentMonth);
           setActiveTab('invoices');
         }}
+        onLogout={handleLogout}
       />
     </div>
   );

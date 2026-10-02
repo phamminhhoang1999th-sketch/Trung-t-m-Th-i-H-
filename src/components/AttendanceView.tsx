@@ -200,6 +200,22 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
     (s) => s.classId === selectedClassId
   ).sort((a, b) => b.date.localeCompare(a.date));
 
+  if (classes.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center max-w-lg mx-auto my-12 space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+          <BookOpen className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">
+          Chưa có lớp học nào để điểm danh
+        </h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Vui lòng tạo lớp học và thêm học sinh vào lớp trước khi thực hiện điểm danh.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header and Filter Controls */}

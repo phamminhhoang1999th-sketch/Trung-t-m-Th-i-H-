@@ -10,6 +10,7 @@ import {
   QrCode,
   PlusCircle,
   FileSpreadsheet,
+  BookOpen,
 } from 'lucide-react';
 import {
   Classroom,
@@ -102,7 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-1">
               <span>Hệ thống Quản lý Trung tâm</span>
               <span>·</span>
-              <span>Hà Nội, {formatDateVN(todayDateStr)}</span>
+              <span>Thanh Hóa, {formatDateVN(todayDateStr)}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Trung Tâm Giáo Dục Thái Hà
@@ -287,66 +288,79 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* List classes for attendance */}
             <div className="space-y-3">
-              {(todayClasses.length > 0 ? todayClasses : classes.slice(0, 3)).map((cls) => {
-                const classStudents = students.filter(
-                  (s) => s.status === 'active' && s.classIds.includes(cls.id)
-                );
-                const isAttendedToday = attendance.some(
-                  (a) => a.classId === cls.id && a.date === todayDateStr
-                );
-
-                return (
-                  <div
-                    key={cls.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 hover:border-slate-300 transition-all gap-3"
+              {classes.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 space-y-2">
+                  <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
+                  <div className="text-xs font-semibold text-slate-600">Hệ thống chưa có lớp học nào</div>
+                  <button
+                    onClick={() => setActiveTab('classes')}
+                    className="px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg hover:bg-indigo-100 transition-colors inline-block cursor-pointer"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                        {cls.grade}
+                    + Tạo lớp học mới
+                  </button>
+                </div>
+              ) : (
+                (todayClasses.length > 0 ? todayClasses : classes.slice(0, 3)).map((cls) => {
+                  const classStudents = students.filter(
+                    (s) => s.status === 'active' && s.classIds.includes(cls.id)
+                  );
+                  const isAttendedToday = attendance.some(
+                    (a) => a.classId === cls.id && a.date === todayDateStr
+                  );
+
+                  return (
+                    <div
+                      key={cls.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 hover:border-slate-300 transition-all gap-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                          {cls.grade}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900 text-sm">
+                            {cls.name}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
+                            <span>GV: {cls.teacher}</span>
+                            <span>·</span>
+                            <span>{cls.room}</span>
+                            <span>·</span>
+                            <span className="font-medium text-slate-700">{cls.schedule}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-semibold text-slate-900 text-sm">
-                          {cls.name}
+
+                      <div className="flex items-center gap-3 justify-between sm:justify-end">
+                        <div className="text-right">
+                          <div className="text-xs text-slate-500">Sĩ số</div>
+                          <div className="text-xs font-bold text-slate-800">
+                            {classStudents.length} học sinh
+                          </div>
                         </div>
-                        <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
-                          <span>GV: {cls.teacher}</span>
-                          <span>·</span>
-                          <span>{cls.room}</span>
-                          <span>·</span>
-                          <span className="font-medium text-slate-700">{cls.schedule}</span>
-                        </div>
+
+                        {isAttendedToday ? (
+                          <button
+                            onClick={() => onSelectClassForAttendance(cls.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Đã điểm danh</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onSelectClassForAttendance(cls.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 active:scale-95 shadow-xs cursor-pointer"
+                          >
+                            <CalendarCheck className="w-4 h-4" />
+                            <span>Điểm danh</span>
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3 justify-between sm:justify-end">
-                      <div className="text-right">
-                        <div className="text-xs text-slate-500">Sĩ số</div>
-                        <div className="text-xs font-bold text-slate-800">
-                          {classStudents.length} học sinh
-                        </div>
-                      </div>
-
-                      {isAttendedToday ? (
-                        <button
-                          onClick={() => onSelectClassForAttendance(cls.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Đã điểm danh</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onSelectClassForAttendance(cls.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 active:scale-95 shadow-xs"
-                        >
-                          <CalendarCheck className="w-4 h-4" />
-                          <span>Điểm danh</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -371,62 +385,70 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-                      <th className="pb-2.5">Học sinh</th>
-                      <th className="pb-2.5">Lớp</th>
-                      <th className="pb-2.5">Số tiền</th>
-                      <th className="pb-2.5">Trạng thái</th>
-                      <th className="pb-2.5 text-right">Mã QR VietQR</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {monthInvoices.slice(0, 4).map((inv) => {
-                      const student = students.find((s) => s.id === inv.studentId);
-                      const cls = classes.find((c) => c.id === inv.classId);
+              {monthInvoices.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 space-y-1">
+                  <Receipt className="w-8 h-8 text-slate-300 mx-auto" />
+                  <div className="text-xs font-semibold text-slate-600">Chưa có hoá đơn nào trong tháng {currentMonth}</div>
+                  <div className="text-[11px] text-slate-400">Hoá đơn sẽ tự động tạo khi có học sinh và buổi điểm danh.</div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                        <th className="pb-2.5">Học sinh</th>
+                        <th className="pb-2.5">Lớp</th>
+                        <th className="pb-2.5">Số tiền</th>
+                        <th className="pb-2.5">Trạng thái</th>
+                        <th className="pb-2.5 text-right">Mã QR VietQR</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {monthInvoices.slice(0, 4).map((inv) => {
+                        const student = students.find((s) => s.id === inv.studentId);
+                        const cls = classes.find((c) => c.id === inv.classId);
 
-                      return (
-                        <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 font-medium text-slate-900">
-                            <div>{student?.fullName || inv.studentId}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">
-                              {student?.parentPhone}
-                            </div>
-                          </td>
-                          <td className="py-3 text-slate-600 max-w-[140px] truncate">
-                            {cls?.name || inv.classId}
-                          </td>
-                          <td className="py-3 font-semibold text-slate-900">
-                            {formatVND(inv.totalAmount)}
-                          </td>
-                          <td className="py-3">
-                            {inv.status === 'paid' ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3" /> Đã đóng
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                <AlertCircle className="w-3 h-3" /> Chờ thu
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 text-right">
-                            <button
-                              onClick={() => onOpenInvoiceModal(inv)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
-                            >
-                              <QrCode className="w-3.5 h-3.5" />
-                              <span>Mã VietQR</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        return (
+                          <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 font-medium text-slate-900">
+                              <div>{student?.fullName || inv.studentId}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                {student?.parentPhone}
+                              </div>
+                            </td>
+                            <td className="py-3 text-slate-600 max-w-[140px] truncate">
+                              {cls?.name || inv.classId}
+                            </td>
+                            <td className="py-3 font-semibold text-slate-900">
+                              {formatVND(inv.totalAmount)}
+                            </td>
+                            <td className="py-3">
+                              {inv.status === 'paid' ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3" /> Đã đóng
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                  <AlertCircle className="w-3 h-3" /> Chờ thu
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 text-right">
+                              <button
+                                onClick={() => onOpenInvoiceModal(inv)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                                <span>Mã VietQR</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs">
