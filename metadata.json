@@ -1,0 +1,6 @@
+{
+  "name": "Trung Tâm Giáo Dục Thái Hà - Quản Lý Điểm Danh & Học Phí",
+  "description": "Hệ thống quản lý điểm danh, xếp lịch học bù và tính xuất hoá đơn học phí tích hợp mã VietQR cho Trung tâm Giáo dục Thái Hà.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
