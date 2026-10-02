@@ -7,46 +7,36 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (!isTursoConfigured()) {
-    return res.status(200).json({ success: true, savedOffline: true });
-  }
-
+  if (!isTursoConfigured()) return res.status(200).json({ success: true, savedOffline: true });
   await initDB();
 
   if (req.method === 'POST') {
     try {
-      const st = req.body;
+      const item = req.body;
       await db.execute({
-        sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, raw_json, updated_at)
-              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        sql: `INSERT INTO makeup_requests (id, student_id, status, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
               ON CONFLICT(id) DO UPDATE SET
-                full_name = excluded.full_name,
-                parent_name = excluded.parent_name,
-                parent_phone = excluded.parent_phone,
+                student_id = excluded.student_id,
+                status = excluded.status,
                 raw_json = excluded.raw_json,
                 updated_at = CURRENT_TIMESTAMP`,
-        args: [
-          st.id,
-          st.fullName || '',
-          st.parentName || '',
-          st.parentPhone || '',
-          JSON.stringify(st),
-        ],
+        args: [item.id, item.studentId, item.status, JSON.stringify(item)],
       });
       return res.status(200).json({ success: true });
     } catch (err) {
-      console.error('Lỗi lưu student:', err);
+      console.error('Lỗi lưu makeup:', err);
       return res.status(500).json({ error: err.message });
     }
   }
 
   if (req.method === 'DELETE') {
     try {
-      const studentId = req.query.id;
-      if (!studentId) return res.status(400).json({ error: 'Thiếu studentId' });
+      const id = req.query.id;
+      if (!id) return res.status(400).json({ error: 'Thiếu id' });
       await db.execute({
-        sql: 'DELETE FROM students WHERE id = ?',
-        args: [studentId],
+        sql: 'DELETE FROM makeup_requests WHERE id = ?',
+        args: [id],
       });
       return res.status(200).json({ success: true });
     } catch (err) {

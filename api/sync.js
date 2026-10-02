@@ -10,9 +10,18 @@ export default async function handler(req, res) {
   await initDB();
 
   try {
-    const { classes = [], students = [], settings } = req.body;
+    const {
+      classes = [],
+      students = [],
+      attendance = [],
+      makeupRequests = [],
+      invoices = [],
+      settings,
+      users = [],
+    } = req.body;
     const queries = [];
 
+    // Classes
     classes.forEach((c) => {
       queries.push({
         sql: `INSERT INTO classes (id, name, subject, grade, teacher, room, schedule, raw_json, updated_at)
@@ -22,15 +31,47 @@ export default async function handler(req, res) {
       });
     });
 
+    // Students
     students.forEach((s) => {
       queries.push({
-        sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, custom_fee, raw_json, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
               ON CONFLICT(id) DO UPDATE SET raw_json = excluded.raw_json, updated_at = CURRENT_TIMESTAMP`,
-        args: [s.id, s.fullName, s.parentName, s.parentPhone, s.customFeePerSession || null, JSON.stringify(s)],
+        args: [s.id, s.fullName, s.parentName, s.parentPhone, JSON.stringify(s)],
       });
     });
 
+    // Attendance
+    attendance.forEach((a) => {
+      queries.push({
+        sql: `INSERT INTO attendance (id, class_id, date, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET raw_json = excluded.raw_json, updated_at = CURRENT_TIMESTAMP`,
+        args: [a.id, a.classId, a.date, JSON.stringify(a)],
+      });
+    });
+
+    // Makeup
+    makeupRequests.forEach((m) => {
+      queries.push({
+        sql: `INSERT INTO makeup_requests (id, student_id, status, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET raw_json = excluded.raw_json, updated_at = CURRENT_TIMESTAMP`,
+        args: [m.id, m.studentId, m.status, JSON.stringify(m)],
+      });
+    });
+
+    // Invoices
+    invoices.forEach((inv) => {
+      queries.push({
+        sql: `INSERT INTO invoices (id, student_id, month, status, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET raw_json = excluded.raw_json, updated_at = CURRENT_TIMESTAMP`,
+        args: [inv.id, inv.studentId, inv.month, inv.status, JSON.stringify(inv)],
+      });
+    });
+
+    // Settings
     if (settings) {
       queries.push({
         sql: `INSERT INTO settings (id, raw_json, updated_at)
@@ -43,8 +84,9 @@ export default async function handler(req, res) {
     if (queries.length > 0) {
       await db.batch(queries);
     }
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, count: queries.length });
   } catch (err) {
+    console.error('Lỗi sync all:', err);
     return res.status(500).json({ error: err.message });
   }
 }

@@ -5,29 +5,21 @@ export async function POST(request) {
   try {
     if (!isTursoConfigured()) return NextResponse.json({ success: true, savedOffline: true });
     await initDB();
-    const st = await request.json();
+    const item = await request.json();
 
     await db.execute({
-      sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, raw_json, updated_at)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      sql: `INSERT INTO makeup_requests (id, student_id, status, raw_json, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
-              full_name = excluded.full_name,
-              parent_name = excluded.parent_name,
-              parent_phone = excluded.parent_phone,
+              student_id = excluded.student_id,
+              status = excluded.status,
               raw_json = excluded.raw_json,
               updated_at = CURRENT_TIMESTAMP`,
-      args: [
-        st.id,
-        st.fullName || '',
-        st.parentName || '',
-        st.parentPhone || '',
-        JSON.stringify(st),
-      ],
+      args: [item.id, item.studentId, item.status, JSON.stringify(item)],
     });
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Lỗi lưu student Next.js API:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -41,7 +33,7 @@ export async function DELETE(request) {
 
     await initDB();
     await db.execute({
-      sql: 'DELETE FROM students WHERE id = ?',
+      sql: 'DELETE FROM makeup_requests WHERE id = ?',
       args: [id],
     });
 

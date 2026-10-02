@@ -5,29 +5,21 @@ export async function POST(request) {
   try {
     if (!isTursoConfigured()) return NextResponse.json({ success: true, savedOffline: true });
     await initDB();
-    const st = await request.json();
+    const session = await request.json();
 
     await db.execute({
-      sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, raw_json, updated_at)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      sql: `INSERT INTO attendance (id, class_id, date, raw_json, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
-              full_name = excluded.full_name,
-              parent_name = excluded.parent_name,
-              parent_phone = excluded.parent_phone,
+              class_id = excluded.class_id,
+              date = excluded.date,
               raw_json = excluded.raw_json,
               updated_at = CURRENT_TIMESTAMP`,
-      args: [
-        st.id,
-        st.fullName || '',
-        st.parentName || '',
-        st.parentPhone || '',
-        JSON.stringify(st),
-      ],
+      args: [session.id, session.classId, session.date, JSON.stringify(session)],
     });
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Lỗi lưu student Next.js API:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -41,7 +33,7 @@ export async function DELETE(request) {
 
     await initDB();
     await db.execute({
-      sql: 'DELETE FROM students WHERE id = ?',
+      sql: 'DELETE FROM attendance WHERE id = ?',
       args: [id],
     });
 

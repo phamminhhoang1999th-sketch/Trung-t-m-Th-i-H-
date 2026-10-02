@@ -7,46 +7,36 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (!isTursoConfigured()) {
-    return res.status(200).json({ success: true, savedOffline: true });
-  }
-
+  if (!isTursoConfigured()) return res.status(200).json({ success: true, savedOffline: true });
   await initDB();
 
   if (req.method === 'POST') {
     try {
-      const st = req.body;
+      const session = req.body;
       await db.execute({
-        sql: `INSERT INTO students (id, full_name, parent_name, parent_phone, raw_json, updated_at)
-              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        sql: `INSERT INTO attendance (id, class_id, date, raw_json, updated_at)
+              VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
               ON CONFLICT(id) DO UPDATE SET
-                full_name = excluded.full_name,
-                parent_name = excluded.parent_name,
-                parent_phone = excluded.parent_phone,
+                class_id = excluded.class_id,
+                date = excluded.date,
                 raw_json = excluded.raw_json,
                 updated_at = CURRENT_TIMESTAMP`,
-        args: [
-          st.id,
-          st.fullName || '',
-          st.parentName || '',
-          st.parentPhone || '',
-          JSON.stringify(st),
-        ],
+        args: [session.id, session.classId, session.date, JSON.stringify(session)],
       });
       return res.status(200).json({ success: true });
     } catch (err) {
-      console.error('Lỗi lưu student:', err);
+      console.error('Lỗi lưu attendance:', err);
       return res.status(500).json({ error: err.message });
     }
   }
 
   if (req.method === 'DELETE') {
     try {
-      const studentId = req.query.id;
-      if (!studentId) return res.status(400).json({ error: 'Thiếu studentId' });
+      const id = req.query.id;
+      if (!id) return res.status(400).json({ error: 'Thiếu id' });
       await db.execute({
-        sql: 'DELETE FROM students WHERE id = ?',
-        args: [studentId],
+        sql: 'DELETE FROM attendance WHERE id = ?',
+        args: [id],
       });
       return res.status(200).json({ success: true });
     } catch (err) {
