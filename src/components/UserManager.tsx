@@ -15,8 +15,10 @@ import {
   DollarSign,
   GraduationCap,
   CreditCard,
+  Database,
 } from 'lucide-react';
 import { UserAccount, UserRole, Classroom } from '../types';
+import { TursoUserForm } from './TursoUserForm';
 
 interface UserManagerProps {
   users: UserAccount[];
@@ -38,6 +40,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
   const isAuthorized = currentUser.role === 'admin' || currentUser.permissions.canManageUsers;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTursoModalOpen, setIsTursoModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
@@ -210,13 +213,22 @@ export const UserManager: React.FC<UserManagerProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-indigo-300 transition-all shrink-0"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Cấp tài khoản giáo viên mới</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsTursoModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition-all shrink-0"
+          >
+            <Database className="w-4 h-4 text-emerald-400" />
+            <span>Thêm vào Turso DB</span>
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-indigo-300 transition-all shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Cấp tài khoản giáo viên mới</span>
+          </button>
+        </div>
       </div>
 
       {/* Role explanation info box */}
@@ -798,6 +810,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
           </div>
         </div>
       )}
+
+      {/* Turso Database Direct Form Modal */}
+      <TursoUserForm
+        isOpen={isTursoModalOpen}
+        onClose={() => setIsTursoModalOpen(false)}
+      />
     </div>
   );
 };
