@@ -242,7 +242,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     </div>
                   </td>
                   <td className="border border-slate-200 p-2.5 text-center font-medium">
-                    {invoice.totalSessions} buổi
+                    <div className="font-bold text-slate-900">{invoice.totalSessions} buổi</div>
+                    <div className="text-[10px] text-slate-500">(Thực tế đã học)</div>
                   </td>
                   <td className="border border-slate-200 p-2.5 text-right font-medium">
                     {formatVND(invoice.feePerSession)}
@@ -251,28 +252,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     {formatVND(invoice.baseAmount)}
                   </td>
                 </tr>
-
-                {invoice.materialFee > 0 && (
-                  <tr>
-                    <td className="border border-slate-200 p-2.5">
-                      <div className="font-semibold text-slate-800">
-                        Giáo trình, tài liệu chuyên đề & đề thi thử
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        In ấn phát hàng tuần tại lớp
-                      </div>
-                    </td>
-                    <td className="border border-slate-200 p-2.5 text-center font-medium">
-                      1 tháng
-                    </td>
-                    <td className="border border-slate-200 p-2.5 text-right font-medium">
-                      {formatVND(invoice.materialFee)}
-                    </td>
-                    <td className="border border-slate-200 p-2.5 text-right font-bold text-slate-900">
-                      {formatVND(invoice.materialFee)}
-                    </td>
-                  </tr>
-                )}
 
                 {invoice.discountAmount > 0 && (
                   <tr className="bg-emerald-50/50">

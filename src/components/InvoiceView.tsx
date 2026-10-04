@@ -129,7 +129,7 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
             <span>Học Phí Hằng Tháng & Hoá Đơn VietQR</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Tự động tính học phí theo buổi chuyên cần, tạo mã QR ngân hàng chuẩn Napas247 cho phụ huynh chuyển khoản.
+            Tự động tính học phí chính xác theo số buổi thực tế học sinh đã tham gia học trong tháng, tạo mã QR ngân hàng chuẩn Napas247 cho phụ huynh chuyển khoản.
           </p>
         </div>
 
@@ -297,7 +297,7 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
                 <th className="p-3.5">Mã hoá đơn</th>
                 <th className="p-3.5">Học sinh & Phụ huynh</th>
                 <th className="p-3.5">Lớp học</th>
-                <th className="p-3.5 text-center">Buổi học</th>
+                <th className="p-3.5 text-center">Buổi đã học</th>
                 <th className="p-3.5 text-right">Tổng học phí</th>
                 <th className="p-3.5">Cú pháp VietQR</th>
                 <th className="p-3.5">Trạng thái</th>

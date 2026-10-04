@@ -26,16 +26,59 @@ app.get('/api/data', async (_req, res) => {
       db.execute('SELECT raw_json FROM makeup_requests ORDER BY updated_at DESC'),
       db.execute('SELECT raw_json FROM invoices ORDER BY updated_at DESC'),
       db.execute('SELECT raw_json FROM settings LIMIT 1'),
-      db.execute('SELECT raw_json FROM users ORDER BY created_at DESC'),
+      db.execute('SELECT id, name, email, phone, raw_json, created_at FROM users ORDER BY created_at DESC'),
     ]);
 
-    const classes = classesRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
-    const students = studentsRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
-    const attendance = attendanceRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
-    const makeupRequests = makeupRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
-    const invoices = invoicesRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
-    const settings = settingsRes.rows.length > 0 ? JSON.parse(settingsRes.rows[0].raw_json as string) : null;
-    const users = usersRes.rows.map((r: any) => JSON.parse(r.raw_json as string));
+    const classes = classesRes.rows.map((r: any) => {
+      try { return JSON.parse(r.raw_json as string); } catch (_) { return null; }
+    }).filter(Boolean);
+
+    const students = studentsRes.rows.map((r: any) => {
+      try { return JSON.parse(r.raw_json as string); } catch (_) { return null; }
+    }).filter(Boolean);
+
+    const attendance = attendanceRes.rows.map((r: any) => {
+      try { return JSON.parse(r.raw_json as string); } catch (_) { return null; }
+    }).filter(Boolean);
+
+    const makeupRequests = makeupRes.rows.map((r: any) => {
+      try { return JSON.parse(r.raw_json as string); } catch (_) { return null; }
+    }).filter(Boolean);
+
+    const invoices = invoicesRes.rows.map((r: any) => {
+      try { return JSON.parse(r.raw_json as string); } catch (_) { return null; }
+    }).filter(Boolean);
+
+    const settings = settingsRes.rows.length > 0 && settingsRes.rows[0].raw_json
+      ? JSON.parse(settingsRes.rows[0].raw_json as string)
+      : null;
+
+    const users = usersRes.rows.map((r: any) => {
+      try {
+        if (r.raw_json) return JSON.parse(r.raw_json as string);
+      } catch (_) {}
+      return {
+        id: String(r.id),
+        fullName: r.name || 'Người dùng',
+        username: (r.email ? r.email.split('@')[0] : `user_${String(r.id).slice(-4)}`).toLowerCase(),
+        email: r.email || '',
+        phone: r.phone || '',
+        role: 'teacher',
+        assignedClassIds: [],
+        status: 'active',
+        password: 'password123',
+        createdAt: r.created_at || new Date().toISOString(),
+        permissions: {
+          canViewTuition: false,
+          canEditTuition: false,
+          canManageUsers: false,
+          canManageClasses: false,
+          canManageStudents: false,
+          canMarkAttendance: true,
+          canManageMakeup: true,
+        },
+      };
+    }).filter(Boolean);
 
     return res.json({
       success: true,
@@ -327,6 +370,20 @@ app.post('/api/sync', async (req, res) => {
       });
     }
 
+    // Users (Giáo viên & Quản trị viên)
+    users.forEach((u: any) => {
+      queries.push({
+        sql: `INSERT INTO users (id, name, email, phone, raw_json, created_at)
+              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                email = excluded.email,
+                phone = excluded.phone,
+                raw_json = excluded.raw_json`,
+        args: [u.id, u.fullName || u.name || '', u.email || '', u.phone || '', JSON.stringify(u)],
+      });
+    });
+
     if (queries.length > 0) {
       await db.batch(queries);
     }
@@ -341,28 +398,109 @@ app.post('/api/sync', async (req, res) => {
 // API route users
 app.post('/api/users', async (req, res) => {
   try {
+    if (!isTursoConfigured()) return res.json({ success: true, savedOffline: true });
     await initDB();
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp cả Tên và Email' });
-    }
-    const id = `USR-${Date.now()}`;
+    const data = req.body;
+    const id = data.id || `USR-${Date.now().toString().slice(-6)}`;
+    const name = data.fullName || data.name || 'Người dùng';
+    const email = data.email || '';
+    const phone = data.phone || '';
+
+    const userAccount = {
+      id,
+      fullName: name,
+      username: data.username || (email ? email.split('@')[0] : `user_${id.slice(-4)}`).toLowerCase(),
+      email,
+      phone,
+      role: data.role || 'teacher',
+      assignedClassIds: data.assignedClassIds || [],
+      status: data.status || 'active',
+      password: data.password || '123456',
+      createdAt: data.createdAt || new Date().toISOString(),
+      permissions: data.permissions || {
+        canViewTuition: data.role === 'admin' || data.role === 'manager',
+        canEditTuition: data.role === 'admin' || data.role === 'manager',
+        canManageUsers: data.role === 'admin',
+        canManageClasses: data.role === 'admin',
+        canManageStudents: data.role === 'admin',
+        canMarkAttendance: true,
+        canManageMakeup: true,
+      },
+    };
+
     await db.execute({
-      sql: 'INSERT INTO users (id, name, email) VALUES (?, ?, ?)',
-      args: [id, name, email],
+      sql: `INSERT INTO users (id, name, email, phone, raw_json, created_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+              name = excluded.name,
+              email = excluded.email,
+              phone = excluded.phone,
+              raw_json = excluded.raw_json`,
+      args: [id, name, email, phone, JSON.stringify(userAccount)],
     });
-    return res.json({ success: true });
+
+    return res.json({ success: true, user: userAccount });
   } catch (error: any) {
-    console.error('Error saving user to Turso:', error);
+    console.error('Lỗi POST /api/users:', error);
     return res.status(500).json({ error: error.message || 'Lỗi kết nối cơ sở dữ liệu Turso' });
+  }
+});
+
+app.delete('/api/users', async (req, res) => {
+  try {
+    const userId = req.query.id as string;
+    if (!userId) return res.status(400).json({ error: 'Thiếu userId' });
+    if (userId === 'USR-ADMIN') {
+      return res.status(400).json({ error: 'Không thể xoá tài khoản Admin quản trị' });
+    }
+    if (!isTursoConfigured()) return res.json({ success: true });
+
+    await initDB();
+    await db.execute({
+      sql: 'DELETE FROM users WHERE id = ?',
+      args: [userId],
+    });
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('Lỗi DELETE /api/users:', err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
 app.get('/api/users', async (_req, res) => {
   try {
+    if (!isTursoConfigured()) return res.json({ success: true, users: [] });
     await initDB();
-    const result = await db.execute('SELECT * FROM users ORDER BY created_at DESC');
-    return res.json({ success: true, users: result.rows });
+    const result = await db.execute('SELECT id, name, email, phone, raw_json, created_at FROM users ORDER BY created_at DESC');
+    const users = result.rows.map((r: any) => {
+      try {
+        if (r.raw_json) return JSON.parse(r.raw_json as string);
+      } catch (_) {}
+      return {
+        id: String(r.id),
+        fullName: r.name || 'Người dùng',
+        username: (r.email ? r.email.split('@')[0] : `user_${String(r.id).slice(-4)}`).toLowerCase(),
+        email: r.email || '',
+        phone: r.phone || '',
+        role: 'teacher',
+        assignedClassIds: [],
+        status: 'active',
+        password: 'password123',
+        createdAt: r.created_at || new Date().toISOString(),
+        permissions: {
+          canViewTuition: false,
+          canEditTuition: false,
+          canManageUsers: false,
+          canManageClasses: false,
+          canManageStudents: false,
+          canMarkAttendance: true,
+          canManageMakeup: true,
+        },
+      };
+    }).filter(Boolean);
+
+    return res.json({ success: true, users });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }

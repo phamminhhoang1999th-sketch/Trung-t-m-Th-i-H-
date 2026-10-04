@@ -189,6 +189,34 @@ export async function syncSaveSettings(settings: CenterSettings): Promise<boolea
   }
 }
 
+// Lưu tài khoản người dùng / giáo viên lên Turso API
+export async function syncSaveUser(user: UserAccount): Promise<boolean> {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user),
+    });
+    return res.ok;
+  } catch (e) {
+    console.error('Lỗi sync user lên Turso:', e);
+    return false;
+  }
+}
+
+// Xoá tài khoản người dùng khỏi Turso API
+export async function syncDeleteUser(userId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/users?id=${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (e) {
+    console.error('Lỗi xoá user trên Turso:', e);
+    return false;
+  }
+}
+
 // Đồng bộ hàng loạt toàn bộ dữ liệu (Sync All)
 export async function syncAllData(data: {
   classes: Classroom[];

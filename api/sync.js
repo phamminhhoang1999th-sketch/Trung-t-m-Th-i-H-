@@ -81,6 +81,20 @@ export default async function handler(req, res) {
       });
     }
 
+    // Users (Giáo viên & Quản trị viên)
+    users.forEach((u) => {
+      queries.push({
+        sql: `INSERT INTO users (id, name, email, phone, raw_json, created_at)
+              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                email = excluded.email,
+                phone = excluded.phone,
+                raw_json = excluded.raw_json`,
+        args: [u.id, u.fullName || u.name || '', u.email || '', u.phone || '', JSON.stringify(u)],
+      });
+    });
+
     if (queries.length > 0) {
       await db.batch(queries);
     }

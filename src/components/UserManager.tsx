@@ -209,18 +209,22 @@ export const UserManager: React.FC<UserManagerProps> = ({
             <span>Phân Quyền & Quản Lý Tài Khoản Giáo Viên</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Admin cấp tài khoản cho giáo viên & quản lý. Chỉ Admin và Quản lý mới được phân quyền xem học phí.
+            {currentUser.role === 'admin'
+              ? 'Admin cấp tài khoản cho giáo viên & quản lý. Dữ liệu tài khoản tự động đồng bộ 2 chiều với bảng users trên Turso Database.'
+              : 'Quản lý và cấp tài khoản cho giáo viên & nhân sự trung tâm.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setIsTursoModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition-all shrink-0"
-          >
-            <Database className="w-4 h-4 text-emerald-400" />
-            <span>Thêm vào Turso DB</span>
-          </button>
+          {currentUser.role === 'admin' && (
+            <button
+              onClick={() => setIsTursoModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition-all shrink-0"
+            >
+              <Database className="w-4 h-4 text-emerald-400" />
+              <span>Thêm vào Turso DB</span>
+            </button>
+          )}
           <button
             onClick={openAddModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-indigo-300 transition-all shrink-0"
@@ -811,11 +815,13 @@ export const UserManager: React.FC<UserManagerProps> = ({
         </div>
       )}
 
-      {/* Turso Database Direct Form Modal */}
-      <TursoUserForm
-        isOpen={isTursoModalOpen}
-        onClose={() => setIsTursoModalOpen(false)}
-      />
+      {/* Turso Database Direct Form Modal - Chỉ khả dụng với Admin */}
+      {currentUser.role === 'admin' && (
+        <TursoUserForm
+          isOpen={isTursoModalOpen}
+          onClose={() => setIsTursoModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

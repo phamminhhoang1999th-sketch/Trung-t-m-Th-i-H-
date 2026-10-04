@@ -22,6 +22,8 @@ import {
   syncSaveInvoice,
   syncDeleteInvoice,
   syncSaveSettings,
+  syncSaveUser,
+  syncDeleteUser,
 } from './utils/tursoSync';
 import { Navbar, NavTab } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
@@ -72,13 +74,31 @@ export default function App() {
     loadAllData();
   }, []);
 
+  // Helper: Bãi bỏ hoàn toàn phí tài liệu/giáo trình khỏi hoá đơn
+  const sanitizeInvoicesNoMaterial = (invs: Invoice[]): Invoice[] =>
+    invs.map((inv) => {
+      const base = inv.baseAmount || inv.totalSessions * inv.feePerSession;
+      const discount = inv.discountAmount || Math.round((base * (inv.discountPercent || 0)) / 100);
+      const cleanTotal = Math.max(0, base - discount);
+      return {
+        ...inv,
+        materialFee: 0,
+        totalAmount: cleanTotal,
+      };
+    });
+
   const loadAllData = async () => {
-    // 1. Tải tức thì từ LocalStorage
+    // 1. Tải tức thì từ LocalStorage (đảm bảo không còn phí tài liệu)
     setClasses(Storage.getClasses());
     setStudents(Storage.getStudents());
     setAttendance(Storage.getAttendance());
     setMakeupRequests(Storage.getMakeupRequests());
-    setInvoices(Storage.getInvoices());
+    const rawLocalInvoices = Storage.getInvoices();
+    const cleanLocalInvoices = sanitizeInvoicesNoMaterial(rawLocalInvoices);
+    setInvoices(cleanLocalInvoices);
+    if (JSON.stringify(rawLocalInvoices) !== JSON.stringify(cleanLocalInvoices)) {
+      Storage.saveInvoices(cleanLocalInvoices);
+    }
     setSettings(Storage.getSettings());
     const loadedUsers = Storage.getUsers();
     setUsers(loadedUsers);
@@ -124,8 +144,9 @@ export default function App() {
         }
 
         if (remote.invoices && remote.invoices.length > 0) {
-          setInvoices(remote.invoices);
-          Storage.saveInvoices(remote.invoices);
+          const cleanRemoteInvoices = sanitizeInvoicesNoMaterial(remote.invoices);
+          setInvoices(cleanRemoteInvoices);
+          Storage.saveInvoices(cleanRemoteInvoices);
         }
 
         if (remote.settings) {
@@ -136,6 +157,9 @@ export default function App() {
         if (remote.users && remote.users.length > 0) {
           setUsers(remote.users);
           Storage.saveUsers(remote.users);
+        } else {
+          const local = Storage.getUsers();
+          if (local.length > 0) local.forEach((u) => syncSaveUser(u));
         }
       }
     } catch (e) {
@@ -163,6 +187,7 @@ export default function App() {
     }
     setUsers(updated);
     Storage.saveUsers(updated);
+    syncSaveUser(user);
 
     // If updated user is current user, update current user state
     if (currentUser?.id === user.id) {
@@ -179,6 +204,7 @@ export default function App() {
     const updated = users.filter((u) => u.id !== userId);
     setUsers(updated);
     Storage.saveUsers(updated);
+    syncDeleteUser(userId);
   };
 
   const handleSwitchUser = (user: UserAccount) => {
@@ -222,6 +248,23 @@ export default function App() {
       });
       setMakeupRequests(updatedMakeups);
       Storage.saveMakeupRequests(updatedMakeups);
+    }
+
+    // 3. Tự động cập nhật hoá đơn tháng này theo số buổi thực tế học sinh đã tham gia học
+    const sessionMonth = session.date.slice(0, 7);
+    const hasPendingInvoicesForMonth = invoices.some((inv) => inv.month === sessionMonth && inv.status === 'pending');
+    if (hasPendingInvoicesForMonth) {
+      const { newInvoices } = generateMonthlyInvoices({
+        month: sessionMonth,
+        classes,
+        students,
+        sessions: updatedSessions,
+        existingInvoices: invoices,
+        settings,
+      });
+      setInvoices(newInvoices);
+      Storage.saveInvoices(newInvoices);
+      newInvoices.forEach((inv) => syncSaveInvoice(inv));
     }
   };
 

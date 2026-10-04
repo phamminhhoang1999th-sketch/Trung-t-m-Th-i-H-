@@ -1,5 +1,23 @@
 export type AttendanceStatus = 'present' | 'absent_excused' | 'absent_unexcused' | 'late';
 
+// Ca học: Ca sáng, Chiều 1, Chiều 2, Tối
+export type SessionShift = 'morning' | 'afternoon_1' | 'afternoon_2' | 'evening';
+
+export interface SessionShiftConfig {
+  id: SessionShift;
+  label: string;
+  shortLabel: string;
+  defaultTime: string;
+  description: string;
+}
+
+export const SESSION_SHIFTS: SessionShiftConfig[] = [
+  { id: 'morning', label: 'Ca sáng', shortLabel: 'Sáng', defaultTime: '08:00 - 11:30', description: '08:00 - 11:30' },
+  { id: 'afternoon_1', label: 'Chiều 1', shortLabel: 'Chiều 1', defaultTime: '14:00 - 16:30', description: '14:00 - 16:30' },
+  { id: 'afternoon_2', label: 'Chiều 2', shortLabel: 'Chiều 2', defaultTime: '16:30 - 19:00', description: '16:30 - 19:00' },
+  { id: 'evening', label: 'Tối', shortLabel: 'Tối', defaultTime: '19:00 - 21:30', description: '19:00 - 21:30' },
+];
+
 export interface AttendanceRecord {
   studentId: string;
   status: AttendanceStatus;
@@ -12,6 +30,7 @@ export interface AttendanceSession {
   id: string;
   classId: string;
   date: string; // YYYY-MM-DD
+  shift?: SessionShift; // Ca sáng | Chiều 1 | Chiều 2 | Tối
   startTime?: string;
   endTime?: string;
   lessonTitle: string;
@@ -90,7 +109,7 @@ export interface Invoice {
   baseAmount: number;
   discountPercent: number;
   discountAmount: number;
-  materialFee: number; // Phí giáo trình, đề thi
+  materialFee?: number; // Đã bãi bỏ phí tài liệu giáo trình
   makeupSessionsCount: number; // Số buổi đã học bù
   excusedAbsencesCount: number;
   totalAmount: number;

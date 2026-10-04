@@ -407,49 +407,51 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             )}
 
-            {/* Turso Cloud Database Sync Card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3 text-xs">
-              <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                <Database className="w-4 h-4 text-emerald-600" />
-                <span>Đồng bộ Turso Database (Cloud)</span>
-              </div>
-              <p className="text-slate-500 text-[11px]">
-                Đẩy toàn bộ dữ liệu (lớp học, học sinh, điểm danh, hoá đơn, cài đặt) lên cơ sở dữ liệu đám mây Turso để lưu trữ vĩnh viễn trên Vercel.
-              </p>
-
-              {syncNotice && (
-                <div
-                  className={`p-2.5 rounded-xl text-xs font-semibold ${
-                    syncNotice.startsWith('Đã')
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-rose-50 text-rose-800 border border-rose-200'
-                  }`}
-                >
-                  {syncNotice}
+            {/* Turso Cloud Database Sync Card - Chỉ hiển thị cho Admin */}
+            {currentUser.role === 'admin' && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3 text-xs">
+                <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-emerald-600" />
+                  <span>Đồng bộ Turso Database (Cloud)</span>
                 </div>
-              )}
+                <p className="text-slate-500 text-[11px]">
+                  Đẩy toàn bộ dữ liệu (lớp học, học sinh, điểm danh, hoá đơn, cài đặt) lên cơ sở dữ liệu đám mây Turso để lưu trữ vĩnh viễn trên Vercel.
+                </p>
 
-              <div className="space-y-2 pt-1">
-                <button
-                  type="button"
-                  disabled={isSyncingAll}
-                  onClick={handleSyncAllToTurso}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm shadow-indigo-200 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>{isSyncingAll ? 'Đang đồng bộ...' : 'Đẩy toàn bộ dữ liệu lên Turso DB'}</span>
-                </button>
+                {syncNotice && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs font-semibold ${
+                      syncNotice.startsWith('Đã')
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {syncNotice}
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  onClick={onRefreshData}
-                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Tải lại dữ liệu mới nhất từ Turso</span>
-                </button>
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={isSyncingAll}
+                    onClick={handleSyncAllToTurso}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm shadow-indigo-200 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>{isSyncingAll ? 'Đang đồng bộ...' : 'Đẩy toàn bộ dữ liệu lên Turso DB'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onRefreshData}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Tải lại dữ liệu mới nhất từ Turso</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Backup & Restore Card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3 text-xs">

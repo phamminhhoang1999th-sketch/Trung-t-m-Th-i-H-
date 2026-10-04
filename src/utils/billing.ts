@@ -35,13 +35,26 @@ export function getStudentAttendanceStats(
     const record = session.records.find((r) => r.studentId === studentId);
     if (record) {
       if (record.isMakeup) {
-        makeupAttendedCount++;
+        if (record.status === 'present' || record.status === 'late') {
+          makeupAttendedCount++;
+        }
       } else {
         if (record.status === 'present') presentCount++;
         else if (record.status === 'late') lateCount++;
         else if (record.status === 'absent_excused') absentExcusedCount++;
         else if (record.status === 'absent_unexcused') absentUnexcusedCount++;
       }
+    }
+  });
+
+  // Kiểm tra học sinh có đi học bù ở các lớp khác trong cùng tháng không
+  const otherClassMakeupSessions = sessions.filter(
+    (s) => s.classId !== classId && s.date.startsWith(month)
+  );
+  otherClassMakeupSessions.forEach((session) => {
+    const record = session.records.find((r) => r.studentId === studentId && r.isMakeup);
+    if (record && (record.status === 'present' || record.status === 'late')) {
+      makeupAttendedCount++;
     }
   });
 
@@ -57,6 +70,7 @@ export function getStudentAttendanceStats(
 
 /**
  * Tự động tính và tạo hóa đơn học phí cho một tháng được chỉ định
+ * QUY TẮC: Học phí của học sinh được tính chính xác theo số buổi thực tế đã tham gia học trong tháng
  */
 export function generateMonthlyInvoices(options: {
   month: string; // YYYY-MM
@@ -65,8 +79,7 @@ export function generateMonthlyInvoices(options: {
   sessions: AttendanceSession[];
   existingInvoices: Invoice[];
   settings: CenterSettings;
-  billingMode?: 'fixed_package' | 'actual_attended'; // Mặc định gói tháng (8 buổi) hoặc theo buổi thực tế
-  materialFeeDefault?: number;
+  billingMode?: 'actual_attended' | 'fixed_package'; // Mặc định tính theo số buổi thực tế đã học
 }): { newInvoices: Invoice[]; createdCount: number; updatedCount: number } {
   const {
     month,
@@ -75,8 +88,7 @@ export function generateMonthlyInvoices(options: {
     sessions,
     existingInvoices,
     settings,
-    billingMode = 'fixed_package',
-    materialFeeDefault = 50000,
+    billingMode = 'actual_attended',
   } = options;
 
   const resultInvoices: Invoice[] = [...existingInvoices];
@@ -109,20 +121,20 @@ export function generateMonthlyInvoices(options: {
     classStudents.forEach((student) => {
       const stats = getStudentAttendanceStats(student.id, cls.id, month, sessions);
 
-      // Xác định số buổi tính tiền
-      let billableSessions = cls.totalExpectedSessionsPerMonth || 8;
-      if (billingMode === 'actual_attended') {
-        billableSessions = stats.totalAttended > 0 ? stats.totalAttended : cls.totalExpectedSessionsPerMonth;
-      }
+      // QUY ĐỊNH: Số buổi tính tiền = Số buổi thực tế học sinh đã tham gia học trong tháng (có mặt + đi muộn + học bù)
+      const billableSessions = billingMode === 'fixed_package'
+        ? (cls.totalExpectedSessionsPerMonth || 8)
+        : stats.totalAttended;
 
       // Học phí 1 buổi: nếu học sinh có học phí riêng thì tính theo số này, để trống thì tính theo học phí chung của lớp
       const hasCustomFee = typeof student.customFeePerSession === 'number' && student.customFeePerSession > 0;
       const feePerSession = hasCustomFee ? student.customFeePerSession! : cls.feePerSession;
       const baseAmount = billableSessions * feePerSession;
-      const discountPercent = 0;
-      const discountAmount = 0;
-      const materialFee = materialFeeDefault;
-      const totalAmount = Math.max(0, baseAmount - discountAmount + materialFee);
+      const discountPercent = student.discountPercent || 0;
+      const discountAmount = Math.round((baseAmount * discountPercent) / 100);
+      // KHÔNG TÍNH PHÍ TÀI LIỆU, GIÁO TRÌNH
+      const materialFee = 0;
+      const totalAmount = Math.max(0, baseAmount - discountAmount);
 
       // Cú pháp chuyển khoản: THAIHA <MÃ_HS> T<THÁNG> (ví dụ: THAIHA TH1001 T10)
       const cleanStudentCode = student.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();

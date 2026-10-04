@@ -12,6 +12,9 @@ import {
   History,
   RotateCcw,
   Sparkles,
+  Sun,
+  Sunset,
+  Moon,
 } from 'lucide-react';
 import {
   Classroom,
@@ -20,6 +23,8 @@ import {
   AttendanceRecord,
   AttendanceStatus,
   MakeupRequest,
+  SessionShift,
+  SESSION_SHIFTS,
 } from '../types';
 import { formatDateVN } from '../utils/vietqr';
 
@@ -50,6 +55,9 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
+  // Ca học: Ca sáng, Chiều 1, Chiều 2, Tối
+  const [selectedShift, setSelectedShift] = useState<SessionShift>('afternoon_1');
+
   const [lessonTitle, setLessonTitle] = useState('');
   const [homework, setHomework] = useState('');
   const [teacherNote, setTeacherNote] = useState('');
@@ -63,13 +71,16 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
   const currentClass = classes.find((c) => c.id === selectedClassId);
 
-  // Load or initialize attendance records whenever class or date changes
+  // Load or initialize attendance records whenever class, date or shift changes
   useEffect(() => {
     if (!selectedClassId) return;
 
-    // Check if a session already exists for this class & date
+    // Check if a session already exists for this class, date & shift
     const existing = attendanceSessions.find(
-      (s) => s.classId === selectedClassId && s.date === selectedDate
+      (s) =>
+        s.classId === selectedClassId &&
+        s.date === selectedDate &&
+        (s.shift === selectedShift || (!s.shift && selectedShift === 'afternoon_1'))
     );
 
     if (existing) {
@@ -79,7 +90,8 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       setRecords([...existing.records]);
     } else {
       // Create fresh records for all active students in class
-      setLessonTitle('');
+      const currentShiftObj = SESSION_SHIFTS.find((s) => s.id === selectedShift);
+      setLessonTitle(`Buổi học ngày ${formatDateVN(selectedDate)} (${currentShiftObj?.label || 'Chiều 1'})`);
       setHomework('');
       setTeacherNote('');
 
@@ -116,7 +128,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
       setRecords(initialList);
     }
-  }, [selectedClassId, selectedDate, attendanceSessions, makeupRequests, students]);
+  }, [selectedClassId, selectedDate, selectedShift, attendanceSessions, makeupRequests, students]);
 
   // Update status for a specific record
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
@@ -162,16 +174,27 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   const handleSave = () => {
     if (!selectedClassId) return;
 
-    const sessionId = `ATT-${selectedDate.replace(/-/g, '')}-${selectedClassId}`;
+    const existing = attendanceSessions.find(
+      (s) =>
+        s.classId === selectedClassId &&
+        s.date === selectedDate &&
+        (s.shift === selectedShift || (!s.shift && selectedShift === 'afternoon_1'))
+    );
+
+    const shiftObj = SESSION_SHIFTS.find((s) => s.id === selectedShift);
+    const sessionId = existing ? existing.id : `ATT-${selectedDate.replace(/-/g, '')}-${selectedClassId}-${selectedShift}`;
     const newSession: AttendanceSession = {
       id: sessionId,
       classId: selectedClassId,
       date: selectedDate,
-      lessonTitle: lessonTitle || `Buổi học ngày ${formatDateVN(selectedDate)}`,
+      shift: selectedShift,
+      startTime: shiftObj?.defaultTime.split(' - ')[0],
+      endTime: shiftObj?.defaultTime.split(' - ')[1],
+      lessonTitle: lessonTitle.trim() || `Buổi học ngày ${formatDateVN(selectedDate)} (${shiftObj?.label || 'Chiều 1'})`,
       homework,
       teacherNote,
       records,
-      createdAt: new Date().toISOString(),
+      createdAt: existing ? existing.createdAt : new Date().toISOString(),
     };
 
     // Find any makeup requests fulfilled by this session
@@ -297,6 +320,83 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               <Calendar className="w-4 h-4" />
               <span>Chọn ngày hôm nay ({formatDateVN(todayStr)})</span>
             </button>
+          </div>
+        </div>
+
+        {/* Chọn Ca Học: Ca sáng, Chiều 1, Chiều 2, Tối */}
+        <div className="pt-4 border-t border-slate-100 mt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>Chọn Ca Học:</span>
+              <span className="text-[11px] font-semibold text-indigo-600 normal-case bg-indigo-50 px-2 py-0.5 rounded-md">
+                {SESSION_SHIFTS.find((s) => s.id === selectedShift)?.label} ({SESSION_SHIFTS.find((s) => s.id === selectedShift)?.description})
+              </span>
+            </label>
+            <span className="text-[11px] text-slate-500">
+              Nhấn chọn ca để ghi nhận riêng biệt danh sách chuyên cần
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {SESSION_SHIFTS.map((shift) => {
+              const isSelected = selectedShift === shift.id;
+              const recordedSession = attendanceSessions.find(
+                (s) =>
+                  s.classId === selectedClassId &&
+                  s.date === selectedDate &&
+                  (s.shift === shift.id || (!s.shift && shift.id === 'afternoon_1'))
+              );
+
+              return (
+                <button
+                  key={shift.id}
+                  type="button"
+                  onClick={() => setSelectedShift(shift.id)}
+                  className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 ring-2 ring-indigo-400'
+                      : recordedSession
+                      ? 'bg-emerald-50/80 border-emerald-300 text-slate-800 hover:bg-emerald-50'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {shift.id === 'morning' && (
+                        <Sun className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-300' : 'text-amber-500'}`} />
+                      )}
+                      {shift.id === 'afternoon_1' && (
+                        <Sunset className={`w-4 h-4 shrink-0 ${isSelected ? 'text-sky-300' : 'text-sky-500'}`} />
+                      )}
+                      {shift.id === 'afternoon_2' && (
+                        <Sunset className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-300' : 'text-indigo-500'}`} />
+                      )}
+                      {shift.id === 'evening' && (
+                        <Moon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-purple-300' : 'text-purple-500'}`} />
+                      )}
+                      <span className="font-extrabold text-sm">{shift.label}</span>
+                    </div>
+
+                    {recordedSession && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        ✓ Đã ghi
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className={`text-[11px] mt-1.5 font-medium ${
+                      isSelected ? 'text-indigo-100' : 'text-slate-500'
+                    }`}
+                  >
+                    {shift.description}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -600,6 +700,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               classHistorySessions.map((session) => {
                 const pCount = session.records.filter((r) => r.status === 'present').length;
                 const aCount = session.records.filter((r) => r.status.startsWith('absent')).length;
+                const shiftObj = SESSION_SHIFTS.find((sh) => sh.id === session.shift);
 
                 return (
                   <div
@@ -607,12 +708,16 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-slate-900 text-sm">
                           {formatDateVN(session.date)}
                         </span>
                         <span className="text-slate-400">·</span>
-                        <span className="font-medium text-indigo-700">
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          {shiftObj ? shiftObj.label : 'Ca học'} {shiftObj ? `(${shiftObj.description})` : ''}
+                        </span>
+                        <span className="text-slate-400">·</span>
+                        <span className="font-medium text-slate-800">
                           {session.lessonTitle}
                         </span>
                       </div>
@@ -639,9 +744,10 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       <button
                         onClick={() => {
                           setSelectedDate(session.date);
+                          if (session.shift) setSelectedShift(session.shift);
                           setActiveTabMode('mark');
                         }}
-                        className="px-3 py-1.5 bg-white border border-slate-300 hover:border-indigo-500 hover:text-indigo-600 font-semibold rounded-lg text-xs transition-colors shadow-2xs"
+                        className="px-3 py-1.5 bg-white border border-slate-300 hover:border-indigo-500 hover:text-indigo-600 font-semibold rounded-lg text-xs transition-colors shadow-2xs cursor-pointer"
                       >
                         Xem & Chỉnh sửa
                       </button>
